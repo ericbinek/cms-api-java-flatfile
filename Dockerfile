@@ -1,0 +1,22 @@
+FROM eclipse-temurin:25-alpine
+
+RUN addgroup -S appuser && adduser -S appuser -G appuser
+
+WORKDIR /app
+
+COPY . .
+
+RUN find src -name "*.java" > sources.txt \
+  && javac -d out @sources.txt \
+  && rm sources.txt
+
+RUN mkdir -p data && chown -R appuser:appuser /app
+
+USER appuser
+
+EXPOSE 3006
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --quiet --spider http://127.0.0.1:3006/health || exit 1
+
+CMD ["java", "-cp", "out", "cms.Server"]

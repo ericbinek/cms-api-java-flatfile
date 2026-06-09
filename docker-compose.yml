@@ -1,0 +1,13 @@
+name: cms-api-java-flatfile
+
+services:
+  app:
+    container_name: cms-api-java-flatfile
+    build: .
+    ports:
+      - "3006:3006"
+    volumes:
+      - ./data:/app/data
+    environment:
+      PORT: "3006"
+      DATA_DIR: /app/data

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>cms</groupId>
+    <artifactId>cms-api-java-flatfile</artifactId>
+    <version>0.1.0</version>
+    <packaging>jar</packaging>
+    <name>cms-api-java-flatfile</name>
+    <description>Standalone schema.org-aligned CMS API on Java — no runtime dependencies.</description>
+    <licenses>
+        <license>
+            <name>MIT License</name>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>Eric Binek</name>
+        </developer>
+    </developers>
+    <properties>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+</project>

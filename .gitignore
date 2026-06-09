@@ -1,0 +1,12 @@
+out/
+build/
+target/
+sources.txt
+data/
+.env
+.env.local
+*.log
+.DS_Store
+.idea/
+*.iml
+.vscode/
