@@ -1,6 +1,7 @@
 package cms.test;
 
 import cms.Json;
+import cms.models.FieldSpec;
 import cms.models.BlogPosting;
 import cms.models.Person;
 import cms.models.WebPage;
@@ -67,7 +68,7 @@ public final class Helpers {
         }
     }
 
-    public static Map<String, Map<String, Object>> fieldsOf(String entity) {
+    public static Map<String, FieldSpec> fieldsOf(String entity) {
         switch (entity) {
             case "BlogPosting": return BlogPosting.FIELDS;
             case "Person": return Person.FIELDS;
@@ -156,51 +157,39 @@ public final class Helpers {
         }
     }
 
-    private static Object sampleOne(Map<String, Object> spec) {
-        String kind = (String) spec.get("kind");
-        if ("scalar".equals(kind)) {
-            switch ((String) spec.get("type")) {
-                case "Text": return "sample text";
-                case "Integer": return 42L;
-                case "Number": return 3.14;
-                case "Boolean": return true;
-                case "Date":
-                case "DateTime":
-                case "Time": return "2026-05-19T12:00:00Z";
-                case "URL": return "https://example.com/resource";
-                default: return "sample";
+    private static Object sampleOne(FieldSpec spec) {
+        return switch (spec) {
+            case FieldSpec.Scalar s -> switch (s.type()) {
+                case "Text" -> "sample text";
+                case "Integer" -> 42L;
+                case "Number" -> 3.14;
+                case "Boolean" -> true;
+                case "Date", "DateTime", "Time" -> "2026-05-19T12:00:00Z";
+                case "URL" -> "https://example.com/resource";
+                default -> "sample";
+            };
+            case FieldSpec.Enumerated e -> e.values().get(0);
+            case FieldSpec.Embed em -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("@type", em.type());
+                m.put("alternateName", "en");
+                yield m;
             }
-        }
-        if ("enum".equals(kind)) {
-            @SuppressWarnings("unchecked")
-            List<String> values = (List<String>) spec.get("values");
-            return values.get(0);
-        }
-        if ("embed".equals(kind)) {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("@type", spec.get("type"));
-            m.put("alternateName", "en");
-            return m;
-        }
-        return null;
+            case FieldSpec.Ref ignored -> null;
+        };
     }
 
     public static Map<String, Object> buildPayload(String entity, boolean partial) {
-        Map<String, Map<String, Object>> fields = fieldsOf(entity);
+        Map<String, FieldSpec> fields = fieldsOf(entity);
         Set<String> required = requiredOf(entity);
         Map<String, Object> payload = new LinkedHashMap<>();
-        for (Map.Entry<String, Map<String, Object>> e : fields.entrySet()) {
+        for (Map.Entry<String, FieldSpec> e : fields.entrySet()) {
             if (!partial && !required.contains(e.getKey())) continue;
-            Map<String, Object> spec = e.getValue();
-            Object value;
-            if ("ref".equals(spec.get("kind"))) {
-                @SuppressWarnings("unchecked")
-                List<String> targets = (List<String>) spec.get("targets");
-                value = makeDep(targets.get(0));
-            } else {
-                value = sampleOne(spec);
-            }
-            payload.put(e.getKey(), "many".equals(spec.get("cardinality")) ? List.of(value) : value);
+            FieldSpec spec = e.getValue();
+            Object value = spec instanceof FieldSpec.Ref ref
+                ? makeDep(ref.targets().get(0))
+                : sampleOne(spec);
+            payload.put(e.getKey(), spec.cardinality() == FieldSpec.Cardinality.MANY ? List.of(value) : value);
         }
         return payload;
     }

@@ -15,24 +15,24 @@ public final class BlogPosting {
     public static final String TYPE_NAME = "BlogPosting";
     public static final String COLLECTION_FILE = "blog-postings.json";
 
-    public static final Map<String, Map<String, Object>> FIELDS = new LinkedHashMap<>();
+    public static final Map<String, FieldSpec> FIELDS = new LinkedHashMap<>();
     static {
-        FIELDS.put("headline", Map.of("kind", "scalar", "type", "Text", "cardinality", "one"));
-        FIELDS.put("alternativeHeadline", Map.of("kind", "scalar", "type", "Text", "cardinality", "one"));
-        FIELDS.put("description", Map.of("kind", "scalar", "type", "Text", "cardinality", "one"));
-        FIELDS.put("articleBody", Map.of("kind", "scalar", "type", "Text", "cardinality", "one"));
-        FIELDS.put("author", Map.of("kind", "ref", "targets", List.of("Person"), "cardinality", "one"));
-        FIELDS.put("image", Map.of("kind", "ref", "targets", List.of("ImageObject"), "cardinality", "many"));
-        FIELDS.put("keywords", Map.of("kind", "ref", "targets", List.of("DefinedTerm"), "cardinality", "many"));
-        FIELDS.put("about", Map.of("kind", "ref", "targets", List.of("CategoryCode"), "cardinality", "many"));
-        FIELDS.put("datePublished", Map.of("kind", "scalar", "type", "DateTime", "cardinality", "one"));
-        FIELDS.put("dateModified", Map.of("kind", "scalar", "type", "DateTime", "cardinality", "one"));
-        FIELDS.put("dateCreated", Map.of("kind", "scalar", "type", "DateTime", "cardinality", "one"));
-        FIELDS.put("url", Map.of("kind", "scalar", "type", "URL", "cardinality", "one"));
-        FIELDS.put("inLanguage", Map.of("kind", "embed", "type", "Language", "cardinality", "one"));
-        FIELDS.put("isAccessibleForFree", Map.of("kind", "scalar", "type", "Boolean", "cardinality", "one"));
-        FIELDS.put("wordCount", Map.of("kind", "scalar", "type", "Integer", "cardinality", "one"));
-        FIELDS.put("creativeWorkStatus", Map.of("kind", "enum", "values", List.of("Draft", "Pending", "Published", "Archived"), "cardinality", "one"));
+        FIELDS.put("headline", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
+        FIELDS.put("alternativeHeadline", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
+        FIELDS.put("description", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
+        FIELDS.put("articleBody", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
+        FIELDS.put("author", new FieldSpec.Ref(List.of("Person"), FieldSpec.Cardinality.ONE));
+        FIELDS.put("image", new FieldSpec.Ref(List.of("ImageObject"), FieldSpec.Cardinality.MANY));
+        FIELDS.put("keywords", new FieldSpec.Ref(List.of("DefinedTerm"), FieldSpec.Cardinality.MANY));
+        FIELDS.put("about", new FieldSpec.Ref(List.of("CategoryCode"), FieldSpec.Cardinality.MANY));
+        FIELDS.put("datePublished", new FieldSpec.Scalar("DateTime", FieldSpec.Cardinality.ONE));
+        FIELDS.put("dateModified", new FieldSpec.Scalar("DateTime", FieldSpec.Cardinality.ONE));
+        FIELDS.put("dateCreated", new FieldSpec.Scalar("DateTime", FieldSpec.Cardinality.ONE));
+        FIELDS.put("url", new FieldSpec.Scalar("URL", FieldSpec.Cardinality.ONE));
+        FIELDS.put("inLanguage", new FieldSpec.Embed("Language", FieldSpec.Cardinality.ONE));
+        FIELDS.put("isAccessibleForFree", new FieldSpec.Scalar("Boolean", FieldSpec.Cardinality.ONE));
+        FIELDS.put("wordCount", new FieldSpec.Scalar("Integer", FieldSpec.Cardinality.ONE));
+        FIELDS.put("creativeWorkStatus", new FieldSpec.Enumerated(List.of("Draft", "Pending", "Published", "Archived"), FieldSpec.Cardinality.ONE));
     }
 
     public static final Set<String> REQUIRED_FIELDS = Set.of("headline", "articleBody", "author");
@@ -58,35 +58,25 @@ public final class BlogPosting {
         return false;
     }
 
-    private static List<String> checkOne(Map<String, Object> spec, Object value, String path) {
-        String kind = (String) spec.get("kind");
-        switch (kind) {
-            case "scalar": {
-                String t = (String) spec.get("type");
-                if (!Validation.checkScalar(t, value)) return List.of("Field \"" + path + "\" must be a " + t + ".");
-                return List.of();
-            }
-            case "enum": {
-                @SuppressWarnings("unchecked")
-                List<String> values = (List<String>) spec.get("values");
-                if (!values.contains(value)) return List.of("Field \"" + path + "\" must be one of: " + String.join(", ", values) + ".");
-                return List.of();
-            }
-            case "ref":
-                if (!Validation.isValidUuid(value)) return List.of("Field \"" + path + "\" must be a UUID.");
-                return List.of();
-            case "embed": {
-                String t = (String) spec.get("type");
-                if (!Validation.isEmbed(value, t)) return List.of("Field \"" + path + "\" must be an inline " + t + " embed with @type set.");
-                return List.of();
-            }
-            default:
-                return List.of("Field \"" + path + "\" has unknown shape.");
-        }
+    private static List<String> checkOne(FieldSpec spec, Object value, String path) {
+        return switch (spec) {
+            case FieldSpec.Scalar s -> Validation.checkScalar(s.type(), value)
+                ? List.of()
+                : List.of("Field \"" + path + "\" must be a " + s.type() + ".");
+            case FieldSpec.Enumerated e -> e.values().contains(value)
+                ? List.of()
+                : List.of("Field \"" + path + "\" must be one of: " + String.join(", ", e.values()) + ".");
+            case FieldSpec.Ref ignored -> Validation.isValidUuid(value)
+                ? List.of()
+                : List.of("Field \"" + path + "\" must be a UUID.");
+            case FieldSpec.Embed em -> Validation.isEmbed(value, em.type())
+                ? List.of()
+                : List.of("Field \"" + path + "\" must be an inline " + em.type() + " embed with @type set.");
+        };
     }
 
-    private static List<String> checkField(Map<String, Object> spec, Object value, String name) {
-        if ("many".equals(spec.get("cardinality"))) {
+    private static List<String> checkField(FieldSpec spec, Object value, String name) {
+        if (spec.cardinality() == FieldSpec.Cardinality.MANY) {
             if (!(value instanceof List)) return List.of("Field \"" + name + "\" must be an array.");
             List<String> errors = new ArrayList<>();
             List<?> list = (List<?>) value;
@@ -124,7 +114,7 @@ public final class BlogPosting {
                 }
             }
         }
-        for (Map.Entry<String, Map<String, Object>> entry : FIELDS.entrySet()) {
+        for (Map.Entry<String, FieldSpec> entry : FIELDS.entrySet()) {
             if (!data.containsKey(entry.getKey())) continue;
             errors.addAll(checkField(entry.getValue(), data.get(entry.getKey()), entry.getKey()));
         }
@@ -135,16 +125,14 @@ public final class BlogPosting {
         return Instant.now().toString();
     }
 
-    @SuppressWarnings("unchecked")
     private static Map<String, Object> normalizeRefs(Map<String, Object> data) {
-        for (Map.Entry<String, Map<String, Object>> entry : FIELDS.entrySet()) {
-            Map<String, Object> spec = entry.getValue();
+        for (Map.Entry<String, FieldSpec> entry : FIELDS.entrySet()) {
             String name = entry.getKey();
-            if (!"ref".equals(spec.get("kind")) || !data.containsKey(name)) continue;
+            if (!(entry.getValue() instanceof FieldSpec.Ref ref) || !data.containsKey(name)) continue;
             Object value = data.get(name);
-            if ("many".equals(spec.get("cardinality")) && value instanceof List) {
+            if (ref.cardinality() == FieldSpec.Cardinality.MANY && value instanceof List<?> list) {
                 List<Object> out = new ArrayList<>();
-                for (Object v : (List<?>) value) out.add(Validation.normalizeUuid(v));
+                for (Object v : list) out.add(Validation.normalizeUuid(v));
                 data.put(name, out);
             } else if (value instanceof String) {
                 data.put(name, Validation.normalizeUuid(value));
@@ -214,7 +202,6 @@ public final class BlogPosting {
     // stay flat. Embedded objects keep their own refs as UUIDs; a ref that no
     // longer resolves is left as the stored UUID string. Each target collection
     // is read at most once per request via the cache.
-    @SuppressWarnings("unchecked")
     public static Map<String, Object> embedRefs(Map<String, Object> item) {
         if (REF_COLLECTIONS.isEmpty()) return item;
         // Read the target collections under the storage lock so a concurrent
@@ -223,17 +210,16 @@ public final class BlogPosting {
         return Storage.withLock(() -> {
             Map<String, List<Map<String, Object>>> cache = new LinkedHashMap<>();
             Map<String, Object> out = new LinkedHashMap<>(item);
-            for (Map.Entry<String, Map<String, Object>> entry : FIELDS.entrySet()) {
-                Map<String, Object> spec = entry.getValue();
-                if (!"ref".equals(spec.get("kind"))) continue;
+            for (Map.Entry<String, FieldSpec> entry : FIELDS.entrySet()) {
+                if (!(entry.getValue() instanceof FieldSpec.Ref ref)) continue;
                 String name = entry.getKey();
                 Object value = out.get(name);
                 if (value == null) continue;
-                List<String> targets = (List<String>) spec.get("targets");
-                if ("many".equals(spec.get("cardinality"))) {
-                    if (!(value instanceof List)) continue;
+                List<String> targets = ref.targets();
+                if (ref.cardinality() == FieldSpec.Cardinality.MANY) {
+                    if (!(value instanceof List<?> list)) continue;
                     List<Object> resolved = new ArrayList<>();
-                    for (Object element : (List<?>) value) resolved.add(resolveRef(element, targets, cache));
+                    for (Object element : list) resolved.add(resolveRef(element, targets, cache));
                     out.put(name, resolved);
                 } else {
                     out.put(name, resolveRef(value, targets, cache));
