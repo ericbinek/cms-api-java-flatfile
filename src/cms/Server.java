@@ -1,5 +1,8 @@
 package cms;
 
+import cms.models.Account;
+import cms.routers.AuthRouter;
+
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
@@ -20,6 +23,8 @@ public final class Server {
     public static void main(String[] args) throws Exception {
         int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "3006"));
         String host = System.getenv().getOrDefault("HOST", "0.0.0.0");
+        // Bootstrap the first admin (if configured) before accepting requests.
+        Account.seedAdmin();
         HttpServer server = create(host, port);
         server.start();
         System.err.println("CMS API running at http://" + host + ":" + port);
@@ -40,19 +45,20 @@ public final class Server {
             }
             Http.json(exchange, 200, java.util.Map.of("status", "ok"));
         });
-        server.createContext("/blog-postings", new BlogPostingRouter());
-        server.createContext("/persons", new PersonRouter());
-        server.createContext("/web-pages", new WebPageRouter());
-        server.createContext("/image-objects", new ImageObjectRouter());
-        server.createContext("/category-codes", new CategoryCodeRouter());
-        server.createContext("/category-code-sets", new CategoryCodeSetRouter());
-        server.createContext("/defined-terms", new DefinedTermRouter());
-        server.createContext("/defined-term-sets", new DefinedTermSetRouter());
-        server.createContext("/comments", new CommentRouter());
-        server.createContext("/web-sites", new WebSiteRouter());
+        server.createContext("/auth", new AuthRouter()).getFilters().add(Auth.filter(false));
+        server.createContext("/blog-postings", new BlogPostingRouter()).getFilters().add(Auth.filter(true));
+        server.createContext("/persons", new PersonRouter()).getFilters().add(Auth.filter(true));
+        server.createContext("/web-pages", new WebPageRouter()).getFilters().add(Auth.filter(true));
+        server.createContext("/image-objects", new ImageObjectRouter()).getFilters().add(Auth.filter(true));
+        server.createContext("/category-codes", new CategoryCodeRouter()).getFilters().add(Auth.filter(true));
+        server.createContext("/category-code-sets", new CategoryCodeSetRouter()).getFilters().add(Auth.filter(true));
+        server.createContext("/defined-terms", new DefinedTermRouter()).getFilters().add(Auth.filter(true));
+        server.createContext("/defined-term-sets", new DefinedTermSetRouter()).getFilters().add(Auth.filter(true));
+        server.createContext("/comments", new CommentRouter()).getFilters().add(Auth.filter(true));
+        server.createContext("/web-sites", new WebSiteRouter()).getFilters().add(Auth.filter(true));
         server.createContext("/", exchange -> {
             Http.jsonError(exchange, Errors.routeNotFound(Http.requestPath(exchange)));
-        });
+        }).getFilters().add(Auth.filter(true));
         return server;
     }
 }

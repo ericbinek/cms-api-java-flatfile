@@ -15,7 +15,9 @@ public interface Router extends HttpHandler {
                 Http.preflight(exchange);
                 return;
             }
-            if (!dispatch(exchange, method, path, Http.requestPath(exchange))) {
+            // The auth middleware filter resolved the principal before routing.
+            Auth.Principal principal = Auth.of(exchange);
+            if (!dispatch(exchange, method, path, Http.requestPath(exchange), principal)) {
                 Http.jsonError(exchange, Errors.routeNotFound(Http.requestPath(exchange)));
             }
         } catch (Http.BodyTooLargeException ex) {
@@ -32,5 +34,5 @@ public interface Router extends HttpHandler {
         }
     }
 
-    boolean dispatch(HttpExchange exchange, String method, String path, String requestPath) throws Exception;
+    boolean dispatch(HttpExchange exchange, String method, String path, String requestPath, Auth.Principal principal) throws Exception;
 }

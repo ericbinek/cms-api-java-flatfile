@@ -1,5 +1,6 @@
 package cms.test;
 
+import cms.Access;
 import cms.Json;
 import cms.models.FieldSpec;
 import cms.models.BlogPosting;
@@ -27,6 +28,11 @@ import java.util.Set;
 public final class Helpers {
 
     private static String baseUrl = "";
+    // Auth is mandatory on writes. The entity suite drives the API as an admin (who
+    // may do everything), so the CRUD contract is exercised unchanged. The active
+    // bearer token is static so the request helpers can attach it without threading
+    // it through every call; caller-supplied Authorization headers win.
+    private static String authToken = null;
     private static final HttpClient CLIENT = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(2))
         .build();
@@ -38,6 +44,22 @@ public final class Helpers {
     }
 
     public static String getBase() { return baseUrl; }
+
+    public static void setAuthToken(String token) { authToken = token; }
+
+    // Logs in against an explicit server and returns the issued session token.
+    public static String login(String base, String username, String password) {
+        Map<String, Object> creds = new LinkedHashMap<>();
+        creds.put("username", username);
+        creds.put("password", password);
+        Response r = requestTo(base, null, "POST", "/auth/login", creds);
+        if (r.status != 200) {
+            throw new RuntimeException("login(" + username + ") failed with " + r.status + ": " + r.raw);
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) r.body;
+        return (String) body.get("token");
+    }
 
     public static boolean waitForHealth(long timeoutMillis) {
         long deadline = System.currentTimeMillis() + timeoutMillis;
@@ -126,6 +148,9 @@ public final class Helpers {
             for (Map.Entry<String, String> e : headers.entrySet()) {
                 b.header(e.getKey(), e.getValue());
             }
+            if (authToken != null && !headers.containsKey("Authorization")) {
+                b.header("Authorization", "Bearer " + authToken);
+            }
             b.method(method, publisher);
             HttpResponse<String> r = CLIENT.send(b.build(), HttpResponse.BodyHandlers.ofString());
             Map<String, String> hdrs = new LinkedHashMap<>();
@@ -147,7 +172,37 @@ public final class Helpers {
             for (Map.Entry<String, String> e : headers.entrySet()) {
                 b.header(e.getKey(), e.getValue());
             }
+            if (authToken != null && !headers.containsKey("Authorization")) {
+                b.header("Authorization", "Bearer " + authToken);
+            }
             b.method(method, HttpRequest.BodyPublishers.ofString(rawBody));
+            HttpResponse<String> r = CLIENT.send(b.build(), HttpResponse.BodyHandlers.ofString());
+            Map<String, String> hdrs = new LinkedHashMap<>();
+            r.headers().map().forEach((k, v) -> { if (!v.isEmpty()) hdrs.put(k.toLowerCase(), v.get(0)); });
+            return new Response(r.statusCode(), hdrs, r.body());
+        } catch (Exception e) {
+            throw new RuntimeException("Request failed: " + e.getMessage(), e);
+        }
+    }
+
+    // Stateless request against an explicit server with an explicit bearer (or none).
+    // The auth conformance suite drives several roles and several servers, so it does
+    // not rely on the static base or token. A null body sends no body; a Map (even an
+    // empty one) is serialized as a JSON request body.
+    public static Response requestTo(String base, String bearer, String method, String path, Object body) {
+        try {
+            HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(base + path))
+                .timeout(Duration.ofSeconds(10))
+                .header("Accept", "application/json");
+            if (bearer != null) b.header("Authorization", "Bearer " + bearer);
+            HttpRequest.BodyPublisher publisher;
+            if (body == null) {
+                publisher = HttpRequest.BodyPublishers.noBody();
+            } else {
+                publisher = HttpRequest.BodyPublishers.ofString(Json.stringify(body));
+                b.header("Content-Type", "application/json");
+            }
+            b.method(method, publisher);
             HttpResponse<String> r = CLIENT.send(b.build(), HttpResponse.BodyHandlers.ofString());
             Map<String, String> hdrs = new LinkedHashMap<>();
             r.headers().map().forEach((k, v) -> { if (!v.isEmpty()) hdrs.put(k.toLowerCase(), v.get(0)); });
@@ -182,8 +237,12 @@ public final class Helpers {
     public static Map<String, Object> buildPayload(String entity, boolean partial) {
         Map<String, FieldSpec> fields = fieldsOf(entity);
         Set<String> required = requiredOf(entity);
+        // System and internal fields are never sent — they are not client writable
+        // and would be rejected with 400, even when a schema property shares the name.
+        Set<String> readonly = Access.readonlyFields();
         Map<String, Object> payload = new LinkedHashMap<>();
         for (Map.Entry<String, FieldSpec> e : fields.entrySet()) {
+            if (readonly.contains(e.getKey())) continue;
             if (!partial && !required.contains(e.getKey())) continue;
             FieldSpec spec = e.getValue();
             Object value = spec instanceof FieldSpec.Ref ref

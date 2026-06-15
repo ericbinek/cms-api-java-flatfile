@@ -30,6 +30,14 @@ public final class Errors {
         return build(400, "INVALID_ID", "ID must be a valid UUID.", List.of(), path);
     }
 
+    public static Map<String, Object> unauthorized(String path) {
+        return build(401, "UNAUTHORIZED", "Authentication is required, or the session is invalid or expired.", List.of(), path);
+    }
+
+    public static Map<String, Object> forbidden(String message, String path) {
+        return build(403, "FORBIDDEN", message != null ? message : "You do not have permission to perform this operation.", List.of(), path);
+    }
+
     public static Map<String, Object> notFound(String resource, String path) {
         return build(404, "NOT_FOUND", resource + " not found.", List.of(), path);
     }
