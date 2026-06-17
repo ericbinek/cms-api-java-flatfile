@@ -10,34 +10,42 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public final class WebSite {
+public final class VideoObject {
 
-    public static final String TYPE_NAME = "WebSite";
-    public static final String COLLECTION_FILE = "web-sites.json";
+    public static final String TYPE_NAME = "VideoObject";
+    public static final String COLLECTION_FILE = "video-objects.json";
 
     public static final Map<String, FieldSpec> FIELDS = new LinkedHashMap<>();
     static {
         FIELDS.put("name", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
         FIELDS.put("description", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
-        FIELDS.put("url", new FieldSpec.Scalar("URL", FieldSpec.Cardinality.ONE));
-        FIELDS.put("inLanguage", new FieldSpec.Embed("Language", FieldSpec.Cardinality.ONE));
-        FIELDS.put("image", new FieldSpec.Ref(List.of("ImageObject"), FieldSpec.Cardinality.ONE));
-        FIELDS.put("publisher", new FieldSpec.Ref(List.of("Organization"), FieldSpec.Cardinality.ONE));
+        FIELDS.put("contentUrl", new FieldSpec.Scalar("URL", FieldSpec.Cardinality.ONE));
+        FIELDS.put("embedUrl", new FieldSpec.Scalar("URL", FieldSpec.Cardinality.ONE));
+        FIELDS.put("encodingFormat", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
+        FIELDS.put("duration", new FieldSpec.Scalar("Duration", FieldSpec.Cardinality.ONE));
+        FIELDS.put("videoQuality", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
+        FIELDS.put("transcript", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
+        FIELDS.put("caption", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
+        FIELDS.put("uploadDate", new FieldSpec.Scalar("DateTime", FieldSpec.Cardinality.ONE));
+        FIELDS.put("creator", new FieldSpec.Ref(List.of("Person"), FieldSpec.Cardinality.ONE));
+        FIELDS.put("thumbnail", new FieldSpec.Ref(List.of("ImageObject"), FieldSpec.Cardinality.ONE));
+        FIELDS.put("productionCompany", new FieldSpec.Ref(List.of("Organization"), FieldSpec.Cardinality.ONE));
     }
 
-    public static final Set<String> REQUIRED_FIELDS = Set.of("name", "url");
-    public static final Set<String> SEARCHABLE_FIELDS = Set.of("name", "description");
-    public static final Set<String> SORTABLE_FIELDS = Set.of("dateCreated", "dateModified", "name", "description", "url");
+    public static final Set<String> REQUIRED_FIELDS = Set.of("contentUrl");
+    public static final Set<String> SEARCHABLE_FIELDS = Set.of("name", "description", "encodingFormat", "videoQuality", "transcript", "caption");
+    public static final Set<String> SORTABLE_FIELDS = Set.of("dateCreated", "dateModified", "name", "description", "contentUrl", "embedUrl", "encodingFormat", "duration", "videoQuality", "transcript", "caption", "uploadDate");
 
     private static final Set<String> SYSTEM_FIELDS = Set.of("id", "dateCreated", "dateModified", "@context", "@type");
 
     private static final Map<String, String> REF_COLLECTIONS = new LinkedHashMap<>();
     static {
+        REF_COLLECTIONS.put("Person", "persons.json");
         REF_COLLECTIONS.put("ImageObject", "image-objects.json");
         REF_COLLECTIONS.put("Organization", "organizations.json");
     }
 
-    private WebSite() {}
+    private VideoObject() {}
 
     private static boolean isEmpty(Object value) {
         if (value == null) return true;

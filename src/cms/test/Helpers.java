@@ -5,14 +5,18 @@ import cms.Json;
 import cms.models.FieldSpec;
 import cms.models.BlogPosting;
 import cms.models.Person;
+import cms.models.Organization;
 import cms.models.WebPage;
 import cms.models.ImageObject;
+import cms.models.VideoObject;
+import cms.models.AudioObject;
 import cms.models.CategoryCode;
 import cms.models.CategoryCodeSet;
 import cms.models.DefinedTerm;
 import cms.models.DefinedTermSet;
 import cms.models.Comment;
 import cms.models.WebSite;
+import cms.models.SiteNavigationElement;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -78,14 +82,18 @@ public final class Helpers {
         switch (entity) {
             case "BlogPosting": return "blog-postings";
             case "Person": return "persons";
+            case "Organization": return "organizations";
             case "WebPage": return "web-pages";
             case "ImageObject": return "image-objects";
+            case "VideoObject": return "video-objects";
+            case "AudioObject": return "audio-objects";
             case "CategoryCode": return "category-codes";
             case "CategoryCodeSet": return "category-code-sets";
             case "DefinedTerm": return "defined-terms";
             case "DefinedTermSet": return "defined-term-sets";
             case "Comment": return "comments";
             case "WebSite": return "web-sites";
+            case "SiteNavigationElement": return "site-navigation-elements";
             default: throw new RuntimeException("Unknown entity: " + entity);
         }
     }
@@ -94,14 +102,18 @@ public final class Helpers {
         switch (entity) {
             case "BlogPosting": return BlogPosting.FIELDS;
             case "Person": return Person.FIELDS;
+            case "Organization": return Organization.FIELDS;
             case "WebPage": return WebPage.FIELDS;
             case "ImageObject": return ImageObject.FIELDS;
+            case "VideoObject": return VideoObject.FIELDS;
+            case "AudioObject": return AudioObject.FIELDS;
             case "CategoryCode": return CategoryCode.FIELDS;
             case "CategoryCodeSet": return CategoryCodeSet.FIELDS;
             case "DefinedTerm": return DefinedTerm.FIELDS;
             case "DefinedTermSet": return DefinedTermSet.FIELDS;
             case "Comment": return Comment.FIELDS;
             case "WebSite": return WebSite.FIELDS;
+            case "SiteNavigationElement": return SiteNavigationElement.FIELDS;
             default: throw new RuntimeException("Unknown entity: " + entity);
         }
     }
@@ -110,14 +122,18 @@ public final class Helpers {
         switch (entity) {
             case "BlogPosting": return BlogPosting.REQUIRED_FIELDS;
             case "Person": return Person.REQUIRED_FIELDS;
+            case "Organization": return Organization.REQUIRED_FIELDS;
             case "WebPage": return WebPage.REQUIRED_FIELDS;
             case "ImageObject": return ImageObject.REQUIRED_FIELDS;
+            case "VideoObject": return VideoObject.REQUIRED_FIELDS;
+            case "AudioObject": return AudioObject.REQUIRED_FIELDS;
             case "CategoryCode": return CategoryCode.REQUIRED_FIELDS;
             case "CategoryCodeSet": return CategoryCodeSet.REQUIRED_FIELDS;
             case "DefinedTerm": return DefinedTerm.REQUIRED_FIELDS;
             case "DefinedTermSet": return DefinedTermSet.REQUIRED_FIELDS;
             case "Comment": return Comment.REQUIRED_FIELDS;
             case "WebSite": return WebSite.REQUIRED_FIELDS;
+            case "SiteNavigationElement": return SiteNavigationElement.REQUIRED_FIELDS;
             default: throw new RuntimeException("Unknown entity: " + entity);
         }
     }

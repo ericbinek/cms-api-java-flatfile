@@ -21,8 +21,9 @@ public final class WebPage {
         FIELDS.put("description", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
         FIELDS.put("text", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
         FIELDS.put("author", new FieldSpec.Ref(List.of("Person"), FieldSpec.Cardinality.ONE));
+        FIELDS.put("publisher", new FieldSpec.Ref(List.of("Organization"), FieldSpec.Cardinality.ONE));
         FIELDS.put("primaryImageOfPage", new FieldSpec.Ref(List.of("ImageObject"), FieldSpec.Cardinality.ONE));
-        FIELDS.put("isPartOf", new FieldSpec.Ref(List.of("WebPage"), FieldSpec.Cardinality.ONE));
+        FIELDS.put("isPartOf", new FieldSpec.Ref(List.of("WebSite"), FieldSpec.Cardinality.ONE));
         FIELDS.put("datePublished", new FieldSpec.Scalar("DateTime", FieldSpec.Cardinality.ONE));
         FIELDS.put("dateModified", new FieldSpec.Scalar("DateTime", FieldSpec.Cardinality.ONE));
         FIELDS.put("dateCreated", new FieldSpec.Scalar("DateTime", FieldSpec.Cardinality.ONE));
@@ -40,8 +41,9 @@ public final class WebPage {
     private static final Map<String, String> REF_COLLECTIONS = new LinkedHashMap<>();
     static {
         REF_COLLECTIONS.put("Person", "persons.json");
+        REF_COLLECTIONS.put("Organization", "organizations.json");
         REF_COLLECTIONS.put("ImageObject", "image-objects.json");
-        REF_COLLECTIONS.put("WebPage", "web-pages.json");
+        REF_COLLECTIONS.put("WebSite", "web-sites.json");
     }
 
     private WebPage() {}

@@ -30,14 +30,18 @@ public final class TestRunner {
 
         run("BlogPosting", cms.test.BlogPostingTest::run, ctx);
         run("Person", cms.test.PersonTest::run, ctx);
+        run("Organization", cms.test.OrganizationTest::run, ctx);
         run("WebPage", cms.test.WebPageTest::run, ctx);
         run("ImageObject", cms.test.ImageObjectTest::run, ctx);
+        run("VideoObject", cms.test.VideoObjectTest::run, ctx);
+        run("AudioObject", cms.test.AudioObjectTest::run, ctx);
         run("CategoryCode", cms.test.CategoryCodeTest::run, ctx);
         run("CategoryCodeSet", cms.test.CategoryCodeSetTest::run, ctx);
         run("DefinedTerm", cms.test.DefinedTermTest::run, ctx);
         run("DefinedTermSet", cms.test.DefinedTermSetTest::run, ctx);
         run("Comment", cms.test.CommentTest::run, ctx);
         run("WebSite", cms.test.WebSiteTest::run, ctx);
+        run("SiteNavigationElement", cms.test.SiteNavigationElementTest::run, ctx);
         run("Auth", AuthConformanceTest::run, ctx);
 
         int total = PASS.get() + FAIL.get();

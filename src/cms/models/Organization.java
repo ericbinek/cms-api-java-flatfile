@@ -10,24 +10,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public final class WebSite {
+public final class Organization {
 
-    public static final String TYPE_NAME = "WebSite";
-    public static final String COLLECTION_FILE = "web-sites.json";
+    public static final String TYPE_NAME = "Organization";
+    public static final String COLLECTION_FILE = "organizations.json";
 
     public static final Map<String, FieldSpec> FIELDS = new LinkedHashMap<>();
     static {
         FIELDS.put("name", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
+        FIELDS.put("legalName", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
         FIELDS.put("description", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
         FIELDS.put("url", new FieldSpec.Scalar("URL", FieldSpec.Cardinality.ONE));
-        FIELDS.put("inLanguage", new FieldSpec.Embed("Language", FieldSpec.Cardinality.ONE));
-        FIELDS.put("image", new FieldSpec.Ref(List.of("ImageObject"), FieldSpec.Cardinality.ONE));
-        FIELDS.put("publisher", new FieldSpec.Ref(List.of("Organization"), FieldSpec.Cardinality.ONE));
+        FIELDS.put("email", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
+        FIELDS.put("telephone", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
+        FIELDS.put("logo", new FieldSpec.Ref(List.of("ImageObject"), FieldSpec.Cardinality.ONE));
+        FIELDS.put("foundingDate", new FieldSpec.Scalar("Date", FieldSpec.Cardinality.ONE));
+        FIELDS.put("sameAs", new FieldSpec.Scalar("URL", FieldSpec.Cardinality.MANY));
+        FIELDS.put("parentOrganization", new FieldSpec.Ref(List.of("Organization"), FieldSpec.Cardinality.ONE));
     }
 
-    public static final Set<String> REQUIRED_FIELDS = Set.of("name", "url");
-    public static final Set<String> SEARCHABLE_FIELDS = Set.of("name", "description");
-    public static final Set<String> SORTABLE_FIELDS = Set.of("dateCreated", "dateModified", "name", "description", "url");
+    public static final Set<String> REQUIRED_FIELDS = Set.of("name");
+    public static final Set<String> SEARCHABLE_FIELDS = Set.of("name", "legalName", "description", "email", "telephone");
+    public static final Set<String> SORTABLE_FIELDS = Set.of("dateCreated", "dateModified", "name", "legalName", "description", "url", "email", "telephone", "foundingDate");
 
     private static final Set<String> SYSTEM_FIELDS = Set.of("id", "dateCreated", "dateModified", "@context", "@type");
 
@@ -37,7 +41,7 @@ public final class WebSite {
         REF_COLLECTIONS.put("Organization", "organizations.json");
     }
 
-    private WebSite() {}
+    private Organization() {}
 
     private static boolean isEmpty(Object value) {
         if (value == null) return true;

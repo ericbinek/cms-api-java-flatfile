@@ -25,6 +25,7 @@ public final class Person {
         FIELDS.put("url", new FieldSpec.Scalar("URL", FieldSpec.Cardinality.ONE));
         FIELDS.put("description", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
         FIELDS.put("image", new FieldSpec.Ref(List.of("ImageObject"), FieldSpec.Cardinality.ONE));
+        FIELDS.put("worksFor", new FieldSpec.Ref(List.of("Organization"), FieldSpec.Cardinality.ONE));
         FIELDS.put("jobTitle", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
         FIELDS.put("sameAs", new FieldSpec.Scalar("URL", FieldSpec.Cardinality.MANY));
     }
@@ -38,6 +39,7 @@ public final class Person {
     private static final Map<String, String> REF_COLLECTIONS = new LinkedHashMap<>();
     static {
         REF_COLLECTIONS.put("ImageObject", "image-objects.json");
+        REF_COLLECTIONS.put("Organization", "organizations.json");
     }
 
     private Person() {}

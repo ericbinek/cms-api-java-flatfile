@@ -9,14 +9,18 @@ import java.util.concurrent.Executors;
 
 import cms.routers.BlogPostingRouter;
 import cms.routers.PersonRouter;
+import cms.routers.OrganizationRouter;
 import cms.routers.WebPageRouter;
 import cms.routers.ImageObjectRouter;
+import cms.routers.VideoObjectRouter;
+import cms.routers.AudioObjectRouter;
 import cms.routers.CategoryCodeRouter;
 import cms.routers.CategoryCodeSetRouter;
 import cms.routers.DefinedTermRouter;
 import cms.routers.DefinedTermSetRouter;
 import cms.routers.CommentRouter;
 import cms.routers.WebSiteRouter;
+import cms.routers.SiteNavigationElementRouter;
 
 public final class Server {
 
@@ -48,14 +52,18 @@ public final class Server {
         server.createContext("/auth", new AuthRouter()).getFilters().add(Auth.filter(false));
         server.createContext("/blog-postings", new BlogPostingRouter()).getFilters().add(Auth.filter(true));
         server.createContext("/persons", new PersonRouter()).getFilters().add(Auth.filter(true));
+        server.createContext("/organizations", new OrganizationRouter()).getFilters().add(Auth.filter(true));
         server.createContext("/web-pages", new WebPageRouter()).getFilters().add(Auth.filter(true));
         server.createContext("/image-objects", new ImageObjectRouter()).getFilters().add(Auth.filter(true));
+        server.createContext("/video-objects", new VideoObjectRouter()).getFilters().add(Auth.filter(true));
+        server.createContext("/audio-objects", new AudioObjectRouter()).getFilters().add(Auth.filter(true));
         server.createContext("/category-codes", new CategoryCodeRouter()).getFilters().add(Auth.filter(true));
         server.createContext("/category-code-sets", new CategoryCodeSetRouter()).getFilters().add(Auth.filter(true));
         server.createContext("/defined-terms", new DefinedTermRouter()).getFilters().add(Auth.filter(true));
         server.createContext("/defined-term-sets", new DefinedTermSetRouter()).getFilters().add(Auth.filter(true));
         server.createContext("/comments", new CommentRouter()).getFilters().add(Auth.filter(true));
         server.createContext("/web-sites", new WebSiteRouter()).getFilters().add(Auth.filter(true));
+        server.createContext("/site-navigation-elements", new SiteNavigationElementRouter()).getFilters().add(Auth.filter(true));
         server.createContext("/", exchange -> {
             Http.jsonError(exchange, Errors.routeNotFound(Http.requestPath(exchange)));
         }).getFilters().add(Auth.filter(true));

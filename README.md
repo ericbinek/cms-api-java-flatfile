@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/ericbinek/cms-api-java-flatfile/actions/workflows/test.yml/badge.svg)](https://github.com/ericbinek/cms-api-java-flatfile/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)
 ![Status](https://img.shields.io/badge/status-work_in_progress-orange.svg)
 ![Build in public](https://img.shields.io/badge/build-in_public-ff69b4.svg)
 ![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
@@ -12,11 +12,11 @@ A standalone, schema.org aligned CMS API written in plain Java 25.
 
 It runs on the JDK alone: `com.sun.net.httpserver` handles HTTP and the standard library does the rest, with no runtime dependencies.
 
-It exposes CRUD endpoints for 10 schema.org entity types such as BlogPosting, Person, and WebPage, backed by flat-file JSON storage, with validation, pagination, filtering, sorting, ETag caching, and reference embedding.
+It exposes CRUD endpoints for 14 schema.org entity types such as BlogPosting, Person, and Organization, backed by flat-file JSON storage, with validation, pagination, filtering, sorting, ETag caching, and reference embedding.
 
 A conformance test suite defines the HTTP contract.
 
-## Status: work in progress (v0.2.0)
+## Status: work in progress (v0.3.0)
 
 This is an ongoing build-in-public project, shared only for community and communication purposes. Do not deploy it in production. Do not rely on its interfaces or data format remaining stable.
 
@@ -73,14 +73,18 @@ curl -X POST http://localhost:3006/blog-postings \
 
 - `BlogPosting`
 - `Person`
+- `Organization`
 - `WebPage`
 - `ImageObject`
+- `VideoObject`
+- `AudioObject`
 - `CategoryCode`
 - `CategoryCodeSet`
 - `DefinedTerm`
 - `DefinedTermSet`
 - `Comment`
 - `WebSite`
+- `SiteNavigationElement`
 
 ## Testing
 

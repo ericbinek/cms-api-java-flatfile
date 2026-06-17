@@ -22,7 +22,10 @@ public final class BlogPosting {
         FIELDS.put("description", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
         FIELDS.put("articleBody", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
         FIELDS.put("author", new FieldSpec.Ref(List.of("Person"), FieldSpec.Cardinality.ONE));
+        FIELDS.put("publisher", new FieldSpec.Ref(List.of("Organization"), FieldSpec.Cardinality.ONE));
         FIELDS.put("image", new FieldSpec.Ref(List.of("ImageObject"), FieldSpec.Cardinality.MANY));
+        FIELDS.put("video", new FieldSpec.Ref(List.of("VideoObject"), FieldSpec.Cardinality.MANY));
+        FIELDS.put("audio", new FieldSpec.Ref(List.of("AudioObject"), FieldSpec.Cardinality.MANY));
         FIELDS.put("keywords", new FieldSpec.Ref(List.of("DefinedTerm"), FieldSpec.Cardinality.MANY));
         FIELDS.put("about", new FieldSpec.Ref(List.of("CategoryCode"), FieldSpec.Cardinality.MANY));
         FIELDS.put("datePublished", new FieldSpec.Scalar("DateTime", FieldSpec.Cardinality.ONE));
@@ -44,7 +47,10 @@ public final class BlogPosting {
     private static final Map<String, String> REF_COLLECTIONS = new LinkedHashMap<>();
     static {
         REF_COLLECTIONS.put("Person", "persons.json");
+        REF_COLLECTIONS.put("Organization", "organizations.json");
         REF_COLLECTIONS.put("ImageObject", "image-objects.json");
+        REF_COLLECTIONS.put("VideoObject", "video-objects.json");
+        REF_COLLECTIONS.put("AudioObject", "audio-objects.json");
         REF_COLLECTIONS.put("DefinedTerm", "defined-terms.json");
         REF_COLLECTIONS.put("CategoryCode", "category-codes.json");
     }
