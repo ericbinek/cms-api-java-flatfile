@@ -154,7 +154,7 @@ public final class PersonRouter implements Router {
                 Http.jsonError(exchange, Errors.forbidden("Role \"" + role + "\" may not create " + ENTITY + ".", requestPath));
                 return;
             }
-            Map<String, Object> body = Http.parseBody(exchange);
+            Map<String, Object> body = Person.sanitize(Http.parseBody(exchange));
             List<String> readonly = Access.readonlyViolations(role, body);
             if (!readonly.isEmpty()) {
                 Http.jsonError(exchange, Errors.validation(List.of("Fields are not writable: " + String.join(", ", readonly) + "."), requestPath));
@@ -200,7 +200,7 @@ public final class PersonRouter implements Router {
                 Http.jsonError(exchange, Errors.forbidden("Role \"" + role + "\" may not update " + ENTITY + ".", requestPath));
                 return;
             }
-            Map<String, Object> body = Http.parseBody(exchange);
+            Map<String, Object> body = Person.sanitize(Http.parseBody(exchange));
             List<String> readonly = Access.readonlyViolations(role, body);
             if (!readonly.isEmpty()) {
                 Http.jsonError(exchange, Errors.validation(List.of("Fields are not writable: " + String.join(", ", readonly) + "."), requestPath));

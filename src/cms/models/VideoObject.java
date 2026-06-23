@@ -17,16 +17,16 @@ public final class VideoObject {
 
     public static final Map<String, FieldSpec> FIELDS = new LinkedHashMap<>();
     static {
-        FIELDS.put("name", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
-        FIELDS.put("description", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
-        FIELDS.put("contentUrl", new FieldSpec.Scalar("URL", FieldSpec.Cardinality.ONE));
-        FIELDS.put("embedUrl", new FieldSpec.Scalar("URL", FieldSpec.Cardinality.ONE));
-        FIELDS.put("encodingFormat", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
-        FIELDS.put("duration", new FieldSpec.Scalar("Duration", FieldSpec.Cardinality.ONE));
-        FIELDS.put("videoQuality", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
-        FIELDS.put("transcript", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
-        FIELDS.put("caption", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE));
-        FIELDS.put("uploadDate", new FieldSpec.Scalar("DateTime", FieldSpec.Cardinality.ONE));
+        FIELDS.put("name", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE, 256, false));
+        FIELDS.put("description", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE, 5000, true));
+        FIELDS.put("contentUrl", new FieldSpec.Scalar("URL", FieldSpec.Cardinality.ONE, 2048, false));
+        FIELDS.put("embedUrl", new FieldSpec.Scalar("URL", FieldSpec.Cardinality.ONE, 2048, false));
+        FIELDS.put("encodingFormat", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE, 128, false));
+        FIELDS.put("duration", new FieldSpec.Scalar("Duration", FieldSpec.Cardinality.ONE, null, false));
+        FIELDS.put("videoQuality", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE, 128, false));
+        FIELDS.put("transcript", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE, 65536, true));
+        FIELDS.put("caption", new FieldSpec.Scalar("Text", FieldSpec.Cardinality.ONE, 1024, false));
+        FIELDS.put("uploadDate", new FieldSpec.Scalar("DateTime", FieldSpec.Cardinality.ONE, null, false));
         FIELDS.put("creator", new FieldSpec.Ref(List.of("Person"), FieldSpec.Cardinality.ONE));
         FIELDS.put("thumbnail", new FieldSpec.Ref(List.of("ImageObject"), FieldSpec.Cardinality.ONE));
         FIELDS.put("productionCompany", new FieldSpec.Ref(List.of("Organization"), FieldSpec.Cardinality.ONE));
@@ -56,9 +56,15 @@ public final class VideoObject {
 
     private static List<String> checkOne(FieldSpec spec, Object value, String path) {
         return switch (spec) {
-            case FieldSpec.Scalar s -> Validation.checkScalar(s.type(), value)
-                ? List.of()
-                : List.of("Field \"" + path + "\" must be a " + s.type() + ".");
+            case FieldSpec.Scalar s -> {
+                if (!Validation.checkScalar(s.type(), value)) {
+                    yield List.of("Field \"" + path + "\" must be a " + s.type() + ".");
+                }
+                if (s.maxLength() != null && value instanceof String str && str.length() > s.maxLength()) {
+                    yield List.of("Field \"" + path + "\" must be at most " + s.maxLength() + " characters.");
+                }
+                yield List.of();
+            }
             case FieldSpec.Enumerated e -> e.values().contains(value)
                 ? List.of()
                 : List.of("Field \"" + path + "\" must be one of: " + String.join(", ", e.values()) + ".");
@@ -119,6 +125,27 @@ public final class VideoObject {
 
     private static String now() {
         return Instant.now().toString();
+    }
+
+    // Field-aware input cleaning, run before validation and storage: each known
+    // scalar string is normalized, stripped of control characters and trimmed,
+    // with long-form (multiline) fields keeping their internal line breaks. Refs,
+    // embeds, lists and other values fall back to the conservative property-blind
+    // sanitizer. The body is cleaned in place: every key is left where it is —
+    // dangerous keys (__proto__, …) are deliberately untouched so validate() can
+    // reject the body, rather than silently dropped here.
+    public static Map<String, Object> sanitize(Map<String, Object> data) {
+        for (String key : new ArrayList<>(data.keySet())) {
+            if (Validation.isDangerousKey(key)) continue;
+            Object value = data.get(key);
+            FieldSpec spec = FIELDS.get(key);
+            if (spec instanceof FieldSpec.Scalar scalar && value instanceof String str) {
+                data.put(key, Validation.sanitizeString(str, scalar.multiline()));
+            } else {
+                data.put(key, Validation.deepSanitize(value));
+            }
+        }
+        return data;
     }
 
     private static Map<String, Object> normalizeRefs(Map<String, Object> data) {
@@ -238,10 +265,9 @@ public final class VideoObject {
         return id;
     }
 
-    @SuppressWarnings("unchecked")
     public static Map<String, Object> create(Map<String, Object> rawData) {
         return Storage.withLock(() -> {
-            Map<String, Object> data = normalizeRefs((Map<String, Object>) Validation.deepSanitize(rawData));
+            Map<String, Object> data = normalizeRefs(rawData);
             List<Map<String, Object>> items = new ArrayList<>(Storage.readCollection(COLLECTION_FILE));
             String n = now();
             Map<String, Object> item = new LinkedHashMap<>();
@@ -259,7 +285,6 @@ public final class VideoObject {
         });
     }
 
-    @SuppressWarnings("unchecked")
     public static Map<String, Object> update(String id, Map<String, Object> rawData) {
         return Storage.withLock(() -> {
             List<Map<String, Object>> items = new ArrayList<>(Storage.readCollection(COLLECTION_FILE));
@@ -270,7 +295,7 @@ public final class VideoObject {
             }
             if (idx < 0) return null;
             Map<String, Object> current = items.get(idx);
-            Map<String, Object> data = normalizeRefs((Map<String, Object>) Validation.deepSanitize(rawData));
+            Map<String, Object> data = normalizeRefs(rawData);
             Map<String, Object> updated = new LinkedHashMap<>(current);
             updated.putAll(data);
             updated.put("@context", current.getOrDefault("@context", "https://schema.org"));

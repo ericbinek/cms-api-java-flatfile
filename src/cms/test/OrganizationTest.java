@@ -134,6 +134,58 @@ public final class OrganizationTest {
             Assert.equal("INVALID_JSON", body.get("error"));
         });
 
+        ctx.test("leading/trailing whitespace is trimmed on create", () -> {
+            Map<String, Object> payload = Helpers.buildPayload(ENTITY, false);
+            payload.put("name", "  trimmed value  ");
+            Helpers.Response r = Helpers.request("POST", BASE, payload, Map.of());
+            Assert.equal(201, r.status, "expected 201");
+            @SuppressWarnings("unchecked") Map<String, Object> body = (Map<String, Object>) r.body;
+            Assert.equal("trimmed value", body.get("name"));
+        });
+
+        ctx.test("control characters are stripped on create", () -> {
+            Map<String, Object> payload = Helpers.buildPayload(ENTITY, false);
+            payload.put("name", "clean\u0000\u0007ed");
+            Helpers.Response r = Helpers.request("POST", BASE, payload, Map.of());
+            Assert.equal(201, r.status, "expected 201");
+            @SuppressWarnings("unchecked") Map<String, Object> body = (Map<String, Object>) r.body;
+            Assert.equal("cleaned", body.get("name"));
+        });
+
+        ctx.test("value over maxLength rejected with 400 VALIDATION_ERROR", () -> {
+            Map<String, Object> payload = Helpers.buildPayload(ENTITY, false);
+            payload.put("name", "a".repeat(257));
+            Helpers.Response r = Helpers.request("POST", BASE, payload, Map.of());
+            Assert.equal(400, r.status);
+            @SuppressWarnings("unchecked") Map<String, Object> body = (Map<String, Object>) r.body;
+            Assert.equal("VALIDATION_ERROR", body.get("error"));
+        });
+
+        ctx.test("value at maxLength accepted", () -> {
+            Map<String, Object> payload = Helpers.buildPayload(ENTITY, false);
+            payload.put("name", "a".repeat(256));
+            Helpers.Response r = Helpers.request("POST", BASE, payload, Map.of());
+            Assert.equal(201, r.status, "expected 201");
+        });
+
+        ctx.test("multiline field \"description\" keeps internal newlines", () -> {
+            Map<String, Object> payload = Helpers.buildPayload(ENTITY, false);
+            payload.put("description", "first line\nsecond line");
+            Helpers.Response r = Helpers.request("POST", BASE, payload, Map.of());
+            Assert.equal(201, r.status, "expected 201");
+            @SuppressWarnings("unchecked") Map<String, Object> body = (Map<String, Object>) r.body;
+            Assert.equal("first line\nsecond line", body.get("description"));
+        });
+
+        ctx.test("single-line field \"name\" strips newlines", () -> {
+            Map<String, Object> payload = Helpers.buildPayload(ENTITY, false);
+            payload.put("name", "first\nsecond");
+            Helpers.Response r = Helpers.request("POST", BASE, payload, Map.of());
+            Assert.equal(201, r.status, "expected 201");
+            @SuppressWarnings("unchecked") Map<String, Object> body = (Map<String, Object>) r.body;
+            Assert.equal("firstsecond", body.get("name"));
+        });
+
         ctx.test("GET by id embeds \"logo\" as an object; list stays flat", () -> {
             Map<String, Object> payload = Helpers.buildPayload(ENTITY, true);
             Helpers.Response c = Helpers.request("POST", BASE, payload, Map.of());

@@ -13,7 +13,7 @@ public sealed interface FieldSpec {
 
     enum Cardinality { ONE, MANY }
 
-    record Scalar(String type, Cardinality cardinality) implements FieldSpec {}
+    record Scalar(String type, Cardinality cardinality, Integer maxLength, boolean multiline) implements FieldSpec {}
 
     record Enumerated(List<String> values, Cardinality cardinality) implements FieldSpec {}
 

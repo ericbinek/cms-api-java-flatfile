@@ -33,8 +33,19 @@ public final class Validation {
     }
 
     public static String sanitizeString(String v) {
-        String stripped = v.replace("\u0000", "");
-        return Normalizer.normalize(stripped, Normalizer.Form.NFC);
+        return sanitizeString(v, false);
+    }
+
+    // Normalize, strip control characters, then strip whitespace. The multiline
+    // variant keeps Tab/Newline/Carriage Return so long-form text can hold line
+    // breaks; the default removes those too. Null bytes and the C1 block are
+    // always removed.
+    public static String sanitizeString(String v, boolean multiline) {
+        String normalized = Normalizer.normalize(v, Normalizer.Form.NFC);
+        String pattern = multiline
+            ? "[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F-\\x9F]"
+            : "[\\x00-\\x1F\\x7F-\\x9F]";
+        return normalized.replaceAll(pattern, "").strip();
     }
 
     public static Object deepSanitize(Object value) {
