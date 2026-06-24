@@ -26,6 +26,10 @@ public interface Router extends HttpHandler {
             Http.jsonError(exchange, Errors.unsupportedMediaType(Http.requestPath(exchange)));
         } catch (Json.JsonException ex) {
             Http.jsonError(exchange, Errors.invalidJson(Http.requestPath(exchange)));
+        } catch (cms.models.DuplicateException ex) {
+            // A unique-key collision is reported in the existing validation
+            // envelope (400), not a new error type.
+            Http.jsonError(exchange, Errors.validation(ex.details(), Http.requestPath(exchange)));
         } catch (Exception ex) {
             System.err.println("[" + Http.requestPath(exchange) + "] " + ex.getMessage());
             Http.jsonError(exchange, Errors.internal(Http.requestPath(exchange)));

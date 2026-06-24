@@ -138,6 +138,26 @@ public final class Helpers {
         }
     }
 
+    public static List<String> keyOf(String entity) {
+        switch (entity) {
+            case "BlogPosting": return BlogPosting.UNIQUE_KEY;
+            case "Person": return Person.UNIQUE_KEY;
+            case "Organization": return Organization.UNIQUE_KEY;
+            case "WebPage": return WebPage.UNIQUE_KEY;
+            case "ImageObject": return ImageObject.UNIQUE_KEY;
+            case "VideoObject": return VideoObject.UNIQUE_KEY;
+            case "AudioObject": return AudioObject.UNIQUE_KEY;
+            case "CategoryCode": return CategoryCode.UNIQUE_KEY;
+            case "CategoryCodeSet": return CategoryCodeSet.UNIQUE_KEY;
+            case "DefinedTerm": return DefinedTerm.UNIQUE_KEY;
+            case "DefinedTermSet": return DefinedTermSet.UNIQUE_KEY;
+            case "Comment": return Comment.UNIQUE_KEY;
+            case "WebSite": return WebSite.UNIQUE_KEY;
+            case "SiteNavigationElement": return SiteNavigationElement.UNIQUE_KEY;
+            default: throw new RuntimeException("Unknown entity: " + entity);
+        }
+    }
+
     public static class Response {
         public final int status;
         public final Map<String, String> headers;
@@ -250,9 +270,19 @@ public final class Helpers {
         };
     }
 
+    // Gives each build a distinct value for a unique-key string field. Without
+    // this every payload would carry the same sample value and the second create
+    // in any multi-record test would trip duplicate detection. Ref key components
+    // are already unique because each is freshly created per build.
+    private static String uniqueValue(String type, String base) {
+        String suffix = java.util.UUID.randomUUID().toString();
+        return "URL".equals(type) ? base + "/" + suffix : base + "-" + suffix;
+    }
+
     public static Map<String, Object> buildPayload(String entity, boolean partial) {
         Map<String, FieldSpec> fields = fieldsOf(entity);
         Set<String> required = requiredOf(entity);
+        Set<String> key = Set.copyOf(keyOf(entity));
         // System and internal fields are never sent — they are not client writable
         // and would be rejected with 400, even when a schema property shares the name.
         Set<String> readonly = Access.readonlyFields();
@@ -261,9 +291,15 @@ public final class Helpers {
             if (readonly.contains(e.getKey())) continue;
             if (!partial && !required.contains(e.getKey())) continue;
             FieldSpec spec = e.getValue();
-            Object value = spec instanceof FieldSpec.Ref ref
-                ? makeDep(ref.targets().get(0))
-                : sampleOne(spec);
+            Object value;
+            if (spec instanceof FieldSpec.Ref ref) {
+                value = makeDep(ref.targets().get(0));
+            } else {
+                value = sampleOne(spec);
+                if (key.contains(e.getKey()) && spec instanceof FieldSpec.Scalar scalar && value instanceof String str) {
+                    value = uniqueValue(scalar.type(), str);
+                }
+            }
             payload.put(e.getKey(), spec.cardinality() == FieldSpec.Cardinality.MANY ? List.of(value) : value);
         }
         return payload;

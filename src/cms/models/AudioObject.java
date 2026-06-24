@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 public final class AudioObject {
@@ -32,6 +33,10 @@ public final class AudioObject {
     public static final Set<String> REQUIRED_FIELDS = Set.of("contentUrl");
     public static final Set<String> SEARCHABLE_FIELDS = Set.of("name", "description", "encodingFormat", "transcript");
     public static final Set<String> SORTABLE_FIELDS = Set.of("dateCreated", "dateModified", "name", "description", "contentUrl", "encodingFormat", "duration", "transcript", "uploadDate");
+
+    // Properties whose combined value must be unique across the collection.
+    // Empty when the entity allows duplicates.
+    public static final List<String> UNIQUE_KEY = List.of("contentUrl");
 
     private static final Set<String> SYSTEM_FIELDS = Set.of("id", "dateCreated", "dateModified", "@context", "@type");
 
@@ -262,10 +267,32 @@ public final class AudioObject {
         return id;
     }
 
+    // A candidate collides when some other record shares every unique-key value.
+    // Comparison runs on already-sanitized, ref-normalized data, so equal values
+    // are in canonical form. Entities without a key never collide.
+    private static boolean violatesUniqueKey(List<Map<String, Object>> items, Map<String, Object> candidate, String excludeId) {
+        if (UNIQUE_KEY.isEmpty()) return false;
+        for (Map<String, Object> item : items) {
+            if (Objects.equals(item.get("id"), excludeId)) continue;
+            boolean match = true;
+            for (String field : UNIQUE_KEY) {
+                if (!Objects.equals(item.get(field), candidate.get(field))) { match = false; break; }
+            }
+            if (match) return true;
+        }
+        return false;
+    }
+
+    private static DuplicateException duplicateError() {
+        String fields = String.join(" and ", UNIQUE_KEY);
+        return new DuplicateException(List.of("A " + TYPE_NAME + " with this " + fields + " already exists."));
+    }
+
     public static Map<String, Object> create(Map<String, Object> rawData) {
         return Storage.withLock(() -> {
             Map<String, Object> data = normalizeRefs(rawData);
             List<Map<String, Object>> items = new ArrayList<>(Storage.readCollection(COLLECTION_FILE));
+            if (violatesUniqueKey(items, data, null)) throw duplicateError();
             String n = now();
             Map<String, Object> item = new LinkedHashMap<>();
             item.putAll(data);
@@ -300,6 +327,7 @@ public final class AudioObject {
             updated.put("id", current.get("id"));
             updated.put("dateCreated", current.get("dateCreated"));
             updated.put("dateModified", now());
+            if (violatesUniqueKey(items, updated, (String) current.get("id"))) throw duplicateError();
             items.set(idx, updated);
             Storage.writeCollection(COLLECTION_FILE, items);
             return updated;

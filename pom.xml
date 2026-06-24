@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>cms</groupId>
     <artifactId>cms-api-java-flatfile</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
     <packaging>jar</packaging>
     <name>cms-api-java-flatfile</name>
     <description>Standalone schema.org-aligned CMS API on Java — no runtime dependencies.</description>

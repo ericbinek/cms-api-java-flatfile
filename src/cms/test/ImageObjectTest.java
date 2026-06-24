@@ -226,5 +226,38 @@ public final class ImageObjectTest {
             @SuppressWarnings("unchecked") Map<String, Object> got = (Map<String, Object>) g.body;
             Assert.equal(dangling, got.get("creator"));
         });
+
+        ctx.test("duplicate unique key on create is rejected with 400 VALIDATION_ERROR", () -> {
+            Map<String, Object> payload = Helpers.buildPayload(ENTITY, false);
+            Helpers.Response first = Helpers.request("POST", BASE, payload, Map.of());
+            Assert.equal(201, first.status, "first create expected 201");
+            // Re-posting the same payload reuses the same key values, so it must collide.
+            Helpers.Response second = Helpers.request("POST", BASE, payload, Map.of());
+            Assert.equal(400, second.status);
+            @SuppressWarnings("unchecked") Map<String, Object> body = (Map<String, Object>) second.body;
+            Assert.equal("VALIDATION_ERROR", body.get("error"));
+        });
+
+        ctx.test("updating a record without changing its unique key succeeds", () -> {
+            Helpers.Response c = Helpers.request("POST", BASE, Helpers.buildPayload(ENTITY, false), Map.of());
+            @SuppressWarnings("unchecked") Map<String, Object> item = (Map<String, Object>) c.body;
+            Map<String, Object> echo = new LinkedHashMap<>();
+            for (String f : Helpers.keyOf(ENTITY)) echo.put(f, item.get(f));
+            Helpers.Response r = Helpers.request("PUT", BASE + "/" + item.get("id"), echo, Map.of());
+            Assert.equal(200, r.status, "self-update expected 200");
+        });
+
+        ctx.test("updating a record to collide with another's unique key is rejected with 400", () -> {
+            Helpers.Response ca = Helpers.request("POST", BASE, Helpers.buildPayload(ENTITY, false), Map.of());
+            @SuppressWarnings("unchecked") Map<String, Object> a = (Map<String, Object>) ca.body;
+            Helpers.Response cb = Helpers.request("POST", BASE, Helpers.buildPayload(ENTITY, false), Map.of());
+            @SuppressWarnings("unchecked") Map<String, Object> b = (Map<String, Object>) cb.body;
+            Map<String, Object> collide = new LinkedHashMap<>();
+            for (String f : Helpers.keyOf(ENTITY)) collide.put(f, a.get(f));
+            Helpers.Response r = Helpers.request("PUT", BASE + "/" + b.get("id"), collide, Map.of());
+            Assert.equal(400, r.status);
+            @SuppressWarnings("unchecked") Map<String, Object> body = (Map<String, Object>) r.body;
+            Assert.equal("VALIDATION_ERROR", body.get("error"));
+        });
     }
 }
