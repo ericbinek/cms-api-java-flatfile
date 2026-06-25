@@ -52,6 +52,10 @@ public final class Errors {
             List.of(), path);
     }
 
+    public static Map<String, Object> tooManyRequests(String path) {
+        return build(429, "TOO_MANY_REQUESTS", "Rate limit exceeded. Try again later.", List.of(), path);
+    }
+
     public static Map<String, Object> preconditionFailed(String path) {
         return build(412, "PRECONDITION_FAILED", "ETag does not match current resource state.", List.of(), path);
     }

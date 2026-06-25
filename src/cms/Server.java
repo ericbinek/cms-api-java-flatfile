@@ -3,6 +3,9 @@ package cms;
 import cms.models.Account;
 import cms.routers.AuthRouter;
 
+import com.sun.net.httpserver.Filter;
+import com.sun.net.httpserver.HttpContext;
+import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
@@ -42,31 +45,42 @@ public final class Server {
     public static HttpServer create(String host, int port) throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress(host, port), 0);
         server.setExecutor(Executors.newCachedThreadPool());
-        server.createContext("/health", exchange -> {
+        register(server, "/health", exchange -> {
             if (!"GET".equals(exchange.getRequestMethod())) {
                 Http.jsonError(exchange, Errors.routeNotFound(Http.requestPath(exchange)));
                 return;
             }
             Http.json(exchange, 200, java.util.Map.of("status", "ok"));
-        });
-        server.createContext("/auth", new AuthRouter()).getFilters().add(Auth.filter(false));
-        server.createContext("/blog-postings", new BlogPostingRouter()).getFilters().add(Auth.filter(true));
-        server.createContext("/persons", new PersonRouter()).getFilters().add(Auth.filter(true));
-        server.createContext("/organizations", new OrganizationRouter()).getFilters().add(Auth.filter(true));
-        server.createContext("/web-pages", new WebPageRouter()).getFilters().add(Auth.filter(true));
-        server.createContext("/image-objects", new ImageObjectRouter()).getFilters().add(Auth.filter(true));
-        server.createContext("/video-objects", new VideoObjectRouter()).getFilters().add(Auth.filter(true));
-        server.createContext("/audio-objects", new AudioObjectRouter()).getFilters().add(Auth.filter(true));
-        server.createContext("/category-codes", new CategoryCodeRouter()).getFilters().add(Auth.filter(true));
-        server.createContext("/category-code-sets", new CategoryCodeSetRouter()).getFilters().add(Auth.filter(true));
-        server.createContext("/defined-terms", new DefinedTermRouter()).getFilters().add(Auth.filter(true));
-        server.createContext("/defined-term-sets", new DefinedTermSetRouter()).getFilters().add(Auth.filter(true));
-        server.createContext("/comments", new CommentRouter()).getFilters().add(Auth.filter(true));
-        server.createContext("/web-sites", new WebSiteRouter()).getFilters().add(Auth.filter(true));
-        server.createContext("/site-navigation-elements", new SiteNavigationElementRouter()).getFilters().add(Auth.filter(true));
-        server.createContext("/", exchange -> {
+        }, null);
+        register(server, "/auth", new AuthRouter(), Auth.filter(false));
+        register(server, "/blog-postings", new BlogPostingRouter(), Auth.filter(true));
+        register(server, "/persons", new PersonRouter(), Auth.filter(true));
+        register(server, "/organizations", new OrganizationRouter(), Auth.filter(true));
+        register(server, "/web-pages", new WebPageRouter(), Auth.filter(true));
+        register(server, "/image-objects", new ImageObjectRouter(), Auth.filter(true));
+        register(server, "/video-objects", new VideoObjectRouter(), Auth.filter(true));
+        register(server, "/audio-objects", new AudioObjectRouter(), Auth.filter(true));
+        register(server, "/category-codes", new CategoryCodeRouter(), Auth.filter(true));
+        register(server, "/category-code-sets", new CategoryCodeSetRouter(), Auth.filter(true));
+        register(server, "/defined-terms", new DefinedTermRouter(), Auth.filter(true));
+        register(server, "/defined-term-sets", new DefinedTermSetRouter(), Auth.filter(true));
+        register(server, "/comments", new CommentRouter(), Auth.filter(true));
+        register(server, "/web-sites", new WebSiteRouter(), Auth.filter(true));
+        register(server, "/site-navigation-elements", new SiteNavigationElementRouter(), Auth.filter(true));
+        register(server, "/", exchange -> {
             Http.jsonError(exchange, Errors.routeNotFound(Http.requestPath(exchange)));
-        }).getFilters().add(Auth.filter(true));
+        }, Auth.filter(true));
         return server;
+    }
+
+    // Registers a context behind the rate-limit filter, which counts every request
+    // and therefore runs first, then the optional auth filter. Every context is
+    // rate limited — including /health and OPTIONS preflights.
+    private static void register(HttpServer server, String path, HttpHandler handler, Filter authFilter) {
+        HttpContext context = server.createContext(path, handler);
+        context.getFilters().add(RateLimit.filter());
+        if (authFilter != null) {
+            context.getFilters().add(authFilter);
+        }
     }
 }

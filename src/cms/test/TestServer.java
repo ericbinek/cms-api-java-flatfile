@@ -61,6 +61,11 @@ public final class TestServer implements AutoCloseable {
             ProcessBuilder pb = new ProcessBuilder("java", "-cp", "out", "cms.Server");
             pb.environment().put("PORT", String.valueOf(port));
             pb.environment().put("DATA_DIR", dataDir.toString());
+            // Default the rate limits high so the suite never trips them — every
+            // test shares one loopback IP. The rate-limit suite overrides these
+            // through env to exercise the limiter deliberately.
+            pb.environment().put("RATE_LIMIT_READ_PER_MINUTE", "1000000");
+            pb.environment().put("RATE_LIMIT_WRITE_PER_MINUTE", "1000000");
             if (env != null) pb.environment().putAll(env);
             pb.redirectError(ProcessBuilder.Redirect.DISCARD);
             pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);

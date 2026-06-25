@@ -43,6 +43,7 @@ public final class TestRunner {
         run("WebSite", cms.test.WebSiteTest::run, ctx);
         run("SiteNavigationElement", cms.test.SiteNavigationElementTest::run, ctx);
         run("Auth", AuthConformanceTest::run, ctx);
+        run("RateLimit", RateLimitTest::run, ctx);
 
         int total = PASS.get() + FAIL.get();
         System.out.println();
