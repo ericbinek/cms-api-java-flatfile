@@ -95,10 +95,20 @@ public final class Http {
     }
 
     public static void json(HttpExchange exchange, int status, Object data) throws IOException {
-        json(exchange, status, data, null);
+        json(exchange, status, data, null, null);
     }
 
     public static void json(HttpExchange exchange, int status, Object data, Map<String, String> extra) throws IOException {
+        json(exchange, status, data, extra, null);
+    }
+
+    /**
+     * Single-record responses pass the record's canonical ETag (the stored
+     * record's version — the same value If-Match is checked against). Without
+     * one the ETag falls back to a hash of the response body; lists and errors
+     * have no single record version.
+     */
+    public static void json(HttpExchange exchange, int status, Object data, Map<String, String> extra, String etag) throws IOException {
         applyCors(exchange);
         if (status == 204) {
             if (extra != null) for (Map.Entry<String, String> e : extra.entrySet()) exchange.getResponseHeaders().set(e.getKey(), e.getValue());
@@ -107,14 +117,14 @@ public final class Http {
         }
         String body = Json.stringify(data);
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        String etag = Validation.etagFor(bytes);
+        String responseETag = etag != null ? etag : Validation.etagFor(bytes);
         String ifNoneMatch = exchange.getRequestHeaders().getFirst("If-None-Match");
-        if (ifNoneMatch != null && (ifNoneMatch.equals(etag) || ifNoneMatch.equals("*"))) {
+        if (ifNoneMatch != null && (ifNoneMatch.equals(responseETag) || ifNoneMatch.equals("*"))) {
             exchange.sendResponseHeaders(304, -1);
             return;
         }
         exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
-        exchange.getResponseHeaders().set("ETag", etag);
+        exchange.getResponseHeaders().set("ETag", responseETag);
         if (extra != null) for (Map.Entry<String, String> e : extra.entrySet()) exchange.getResponseHeaders().set(e.getKey(), e.getValue());
         exchange.sendResponseHeaders(status, bytes.length);
         try (OutputStream os = exchange.getResponseBody()) {

@@ -262,6 +262,34 @@ public final class BlogPostingTest {
             Assert.equal(dangling, got.get("author"));
         });
 
+        ctx.test("fresh ETag from GET satisfies If-Match on PUT, then DELETE", () -> {
+            Map<String, Object> payload = Helpers.buildPayload(ENTITY, true);
+            Helpers.Response c = Helpers.request("POST", BASE, payload, Map.of());
+            @SuppressWarnings("unchecked") Map<String, Object> created = (Map<String, Object>) c.body;
+
+            Helpers.Response got = Helpers.request("GET", BASE + "/" + created.get("id"), null, Map.of());
+            Assert.equal(200, got.status);
+            String etag = got.headers.get("etag");
+            Assert.isTrue(etag != null, "ETag header should be present");
+
+            // The observable ETag names the record version: a conditional GET with it is a 304.
+            Helpers.Response notModified = Helpers.request("GET", BASE + "/" + created.get("id"), null,
+                Map.of("If-None-Match", etag));
+            Assert.equal(304, notModified.status);
+
+            // The honest fresh path: PUT with the ETag the GET handed out succeeds.
+            Helpers.Response put = Helpers.request("PUT", BASE + "/" + created.get("id"), new LinkedHashMap<>(),
+                Map.of("If-Match", etag));
+            Assert.equal(200, put.status, "PUT with fresh If-Match expected 200, got " + put.status + ": " + put.raw);
+
+            // The PUT response carries the new record version; DELETE with it succeeds.
+            String putEtag = put.headers.get("etag");
+            Assert.isTrue(putEtag != null, "PUT response should carry an ETag");
+            Helpers.Response del = Helpers.request("DELETE", BASE + "/" + created.get("id"), null,
+                Map.of("If-Match", putEtag));
+            Assert.equal(204, del.status);
+        });
+
         ctx.test("GET by id embeds \"image\" as an array of objects", () -> {
             Map<String, Object> payload = Helpers.buildPayload(ENTITY, true);
             Helpers.Response c = Helpers.request("POST", BASE, payload, Map.of());

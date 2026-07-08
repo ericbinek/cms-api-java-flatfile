@@ -166,7 +166,7 @@ public final class DefinedTermSetRouter implements Router {
                 return;
             }
             Map<String, Object> created = DefinedTermSet.create(Access.applyCreateDefaults(ENTITY, body, principal.accountId()));
-            Http.json(exchange, 201, Access.stripFields(role, created), Map.of("Location", BASE + "/" + created.get("id")));
+            Http.json(exchange, 201, Access.stripFields(role, created), Map.of("Location", BASE + "/" + created.get("id")), DefinedTermSet.etagOf(created));
             return;
         }
         Http.jsonError(exchange, Errors.methodNotAllowed(List.of("GET", "POST"), requestPath));
@@ -192,7 +192,9 @@ public final class DefinedTermSetRouter implements Router {
             }
             // Single-resource GET embeds referenced entities one level deep
             // (JSON-LD style); list responses and POST responses stay flat.
-            Http.json(exchange, 200, Access.stripFields(role, DefinedTermSet.embedRefs(item)));
+            // The ETag names the stored record's version, not the role- and
+            // embedding-shaped body — it must satisfy a later If-Match.
+            Http.json(exchange, 200, Access.stripFields(role, DefinedTermSet.embedRefs(item)), null, DefinedTermSet.etagOf(item));
             return;
         }
         if ("PUT".equals(method)) {
@@ -227,7 +229,8 @@ public final class DefinedTermSetRouter implements Router {
                     return;
                 }
             }
-            Http.json(exchange, 200, Access.stripFields(role, DefinedTermSet.update(id, body)));
+            Map<String, Object> updated = DefinedTermSet.update(id, body);
+            Http.json(exchange, 200, Access.stripFields(role, updated), null, DefinedTermSet.etagOf(updated));
             return;
         }
         if ("DELETE".equals(method)) {
