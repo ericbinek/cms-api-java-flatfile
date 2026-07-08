@@ -229,7 +229,10 @@ public final class AudioObjectRouter implements Router {
                     return;
                 }
             }
+            // update() returns null when the record vanished between the lookup
+            // above and the write (concurrent delete) — a 404, same as the lookup.
             Map<String, Object> updated = AudioObject.update(id, body);
+            if (updated == null) { Http.jsonError(exchange, Errors.notFound(AudioObject.TYPE_NAME, requestPath)); return; }
             Http.json(exchange, 200, Access.stripFields(role, updated), null, AudioObject.etagOf(updated));
             return;
         }

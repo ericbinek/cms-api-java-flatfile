@@ -229,7 +229,10 @@ public final class ImageObjectRouter implements Router {
                     return;
                 }
             }
+            // update() returns null when the record vanished between the lookup
+            // above and the write (concurrent delete) — a 404, same as the lookup.
             Map<String, Object> updated = ImageObject.update(id, body);
+            if (updated == null) { Http.jsonError(exchange, Errors.notFound(ImageObject.TYPE_NAME, requestPath)); return; }
             Http.json(exchange, 200, Access.stripFields(role, updated), null, ImageObject.etagOf(updated));
             return;
         }
